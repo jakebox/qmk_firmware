@@ -1,47 +1,56 @@
-/* Copyright 2019 Danny Nguyen <danny@keeb.io>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 #include QMK_KEYBOARD_H
 
 enum encoder_names {
   _LEFT,
   _RIGHT,
-  _MIDDLE,
 };
+// enum {
+//     L_AND_R,
+// };
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /*
-        | Knob 1: Vol Dn/Up |      | Knob 2: Page Dn/Up |
-        | Press: Mute       | Home | Press: Play/Pause  |
-        | To layer 1        | Up   | E key              |
-        | Left              | Down | Right              |
+                        LAYER 0 - General Use
+        | Knob 1: Vol Dn/Up     |            | Knob 2: Arrow Dn/Up   |
+        | Press: Mute           | To layer 1 | Press: Close window   |
+        | Copy/paste            | F15        | Previous webpage/bspc |
+        | Left a desktop (Undo) | Mod        | Right a desktop       |
      */
     [0] = LAYOUT(
-        KC_MUTE, KC_HOME, KC_MPLY,
-        TO(1)  , KC_UP  , KC_E,
-        KC_LEFT, KC_DOWN, KC_RGHT
+        KC_MUTE, TO(1) , LCMD(KC_W),
+        M(0)   , KC_F15, KC_BSPC,
+        A(KC_A), MO(5) , A(KC_D)
     ),
+
     /*
-        | RESET          | N/A  | Media Stop |
-        | To layer 0  | Home | RGB Mode   |
-        | Media Previous | End  | Media Next |
+                LAYER 1 - Discord/Gaming
+        | Mute vol   | To layer 2  |      |
+        |  F15       | Mute voice  |      |
+        |            | Deafen      |      |
      */
     [1] = LAYOUT(
-        RESET  , BL_STEP, KC_STOP,
-        TO(0)  , KC_HOME, RGB_MOD,
-        KC_MPRV, KC_END , KC_MNXT
+        KC_MUTE, TO(2)  , XXXXXXX,
+        KC_F15 , KC_PGUP, XXXXXXX,
+        XXXXXXX, KC_PGDN, XXXXXXX
+    ),
+
+    /*
+                LAYER 2 - Zoom
+        | Mute volume    | To layer 0   | Leave meeting |
+        | Toggle camera  | Push to talk | Toggle mute   |
+        | Left           | Show chat    | Right         |
+     */
+    [2] = LAYOUT(
+        KC_MUTE      , TO(0)        , LCMD(KC_W),
+        LCMD(S(KC_V)), KC_SPC      , LCMD(S(KC_A)),
+        C(KC_LEFT)   , LCMD(S(KC_H)), C(KC_RIGHT)
+    ),
+
+    // MOD LAYER
+    [5] = LAYOUT(
+        KC_MPLY      , XXXXXXX, XXXXXXX,
+        LCMD(S(KC_V)), XXXXXXX, BL_TOGG,
+        LCMD(KC_Z)   , KC_TRNS, XXXXXXX
     ),
 };
 
@@ -53,18 +62,30 @@ void encoder_update_user(uint8_t index, bool clockwise) {
             tap_code(KC_VOLD);
         }
     }
-    else if (index == _MIDDLE) {
-        if (clockwise) {
-            tap_code(KC_DOWN);
-        } else {
-            tap_code(KC_UP);
-        }
-    }
     else if (index == _RIGHT) {
-        if (clockwise) {
-            tap_code(KC_PGDN);
-        } else {
-            tap_code(KC_PGUP);
-        }
+            if (clockwise) {
+               SEND_STRING(SS_DOWN(X_LCTL) SS_TAP(X_TAB) SS_UP(X_LCTL));
+            }
+            else {
+                SEND_STRING(SS_DOWN(X_LCTL) SS_DOWN(X_LSFT) SS_TAP(X_TAB) SS_UP(X_LCTL) SS_UP(X_LSFT));
+            }
     }
 }
+
+const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt) {
+    switch(id) {
+        case 0: {
+            if (record->event.pressed) {
+                return MACRO( D(LCMD), T(C), U(LCMD), END  );
+            } else {
+                return MACRO( D(LCMD), T(V), U(LCMD), END  );
+            }
+            break;
+        }
+    }
+    return MACRO_NONE;
+};
+
+// qk_tap_dance_action_t tap_dance_actions[] = {
+//     [L_AND_R] = ACTION_TAP_DANCE_DOUBLE(A(KC_D), A(KC_A)),
+// };
